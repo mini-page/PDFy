@@ -1,0 +1,14 @@
+{
+  "name": "pdfy",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "test:web": "pnpm --filter web test",
+    "lint:web": "pnpm --filter web lint",
+    "typecheck:web": "pnpm --filter web typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  }
+}

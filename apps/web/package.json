@@ -1,0 +1,14 @@
+{
+  "name": "web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node -e \"console.log('web dev scaffold pending')\"",
+    "test": "vitest run",
+    "lint": "node -e \"console.log('web lint scaffold pending')\"",
+    "typecheck": "node -e \"console.log('web typecheck scaffold pending')\""
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}
