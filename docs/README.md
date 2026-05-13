@@ -4,6 +4,7 @@ This repository uses the `docs/` directory as a living source of truth during de
 
 Current documentation map:
 
+- `superpowers/plans/`: implementation plans derived from approved specs
 - `superpowers/specs/`: approved product specs and design documents
 - `product/vision.md`: product scope, goals, non-goals, release intent
 - `architecture/system-overview.md`: high-level system boundaries and component responsibilities

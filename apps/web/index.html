@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Malware Analyzer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; color: #eee; }
+        .header { background: rgba(0,0,0,0.3); padding: 30px 20px; text-align: center; border-bottom: 2px solid #0f3460; }
+        .header h1 { margin: 0; font-size: 2.5em; color: #00d9ff; text-shadow: 0 0 20px rgba(0,217,255,0.5); }
+        .header p { margin: 10px 0 0; color: #aaa; font-size: 1.1em; }
+        .container { max-width: 900px; margin: 0 auto; padding: 30px 20px; }
+        .section { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 25px; margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.1); }
+        .section h2 { color: #00d9ff; margin-top: 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .upload-area { border: 2px dashed #0f3460; border-radius: 10px; padding: 40px; text-align: center; background: rgba(0,0,0,0.2); transition: all 0.3s; }
+        .upload-area:hover { border-color: #00d9ff; background: rgba(0,217,255,0.05); }
+        .upload-area input[type="file"] { display: none; }
+        .upload-label { cursor: pointer; display: block; }
+        .upload-label .icon { font-size: 3em; margin-bottom: 10px; }
+        .btn { background: linear-gradient(135deg, #0f3460, #00d9ff); color: #fff; border: none; padding: 12px 30px; border-radius: 25px; font-size: 1em; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 15px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,217,255,0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .loading { display: none; padding: 20px; text-align: center; }
+        .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #00d9ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .result { margin-top: 20px; padding: 20px; border-radius: 10px; display: none; }
+        .result.success { background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; }
+        .result.warning { background: rgba(255, 193, 7, 0.2); border: 1px solid #ffc107; }
+        .result.danger { background: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; }
+        .result h3 { margin-top: 0; }
+        .result-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .result-row:last-child { border-bottom: none; }
+        .result-label { color: #aaa; }
+        .result-value { color: #fff; font-weight: 500; }
+        .showcase { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 15px; }
+        .showcase-card { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); transition: transform 0.2s; }
+        .showcase-card:hover { transform: translateY(-5px); border-color: #00d9ff; }
+        .showcase-card h3 { color: #00d9ff; margin: 0 0 10px; }
+        .showcase-card p { color: #aaa; margin: 0; font-size: 0.9em; line-height: 1.5; }
+        .showcase-card a { color: #00d9ff; text-decoration: none; }
+        .showcase-card a:hover { text-decoration: underline; }
+        .doc-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+        .doc-link { background: rgba(15, 52, 96, 0.8); color: #00d9ff; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-size: 0.9em; transition: all 0.2s; border: 1px solid rgba(0,217,255,0.3); }
+        .doc-link:hover { background: #00d9ff; color: #1a1a2e; }
+        .features { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; }
+        .feature { background: rgba(0,217,255,0.1); padding: 10px 15px; border-radius: 8px; font-size: 0.9em; display: flex; align-items: center; gap: 8px; }
+        .feature-icon { color: #00d9ff; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 30px; }
+        .footer a { color: #00d9ff; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PDFy</h1>
+        <p>PDF Malware Analysis API - Fast, comprehensive security scanning</p>
+    </div>
+
+    <div class="container">
+        <!-- Features Section -->
+        <div class="section">
+            <h2>Features</h2>
+            <div class="features">
+                <div class="feature"><span class="feature-icon">⚡</span> Fast Scanning</div>
+                <div class="feature"><span class="feature-icon">🔍</span> IOC Extraction</div>
+                <div class="feature"><span class="feature-icon">📊</span> Risk Scoring</div>
+                <div class="feature"><span class="feature-icon">🔐</span> Deep Analysis</div>
+                <div class="feature"><span class="feature-icon">🌐</span> Multi-Interface</div>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="section">
+            <h2>Analyze PDF</h2>
+            <div class="upload-area">
+                <label class="upload-label">
+                    <div class="icon">📄</div>
+                    <div>Click to select or drag & drop a PDF file</div>
+                    <input type="file" id="pdfFile" accept=".pdf">
+                </label>
+            </div>
+            <button class="btn" id="analyzeBtn" disabled>Analyze PDF</button>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing your PDF...</p>
+            </div>
+            <div id="result" class="result"></div>
+        </div>
+
+        <!-- Showcase Section -->
+        <div class="section">
+            <h2>Documentation & Resources</h2>
+            <div class="showcase">
+                <div class="showcase-card">
+                    <h3>📖 README</h3>
+                    <p>Complete project documentation with installation, usage, and API reference.</p>
+                    <p><a href="../../README.md" target="_blank">View README →</a></p>
+                </div>
+                <div class="showcase-card">
+                    <h3>🏗️ Architecture</h3>
+                    <p>System architecture, components, and analysis pipeline overview.</p>
+                    <p><a href="../../docs/architecture/system-overview.md" target="_blank">System Overview →</a></p>
+                </div>
+                <div class="showcase-card">
+                    <h3>🔌 API Reference</h3>
+                    <p>REST API endpoints, request/response formats, and payload contracts.</p>
+                    <p><a href="../../docs/api/contracts.md" target="_blank">API Contracts →</a></p>
+                </div>
+                <div class="showcase-card">
+                    <h3>📋 Result Schema</h3>
+                    <p>Scan result data structures, verdict definitions, and scoring methodology.</p>
+                    <p><a href="../../docs/schemas/scan-result-schema.md" target="_blank">Schema Reference →</a></p>
+                </div>
+                <div class="showcase-card">
+                    <h3>🛡️ Security & Privacy</h3>
+                    <p>Data retention policies, automatic deletion, and privacy measures.</p>
+                    <p><a href="../../docs/security/privacy.md" target="_blank">Security Policy →</a></p>
+                </div>
+                <div class="showcase-card">
+                    <h3>📦 Design Spec</h3>
+                    <p>Product design details, feature specifications, and implementation roadmap.</p>
+                    <p><a href="../../docs/superpowers/specs/2026-05-11-pdf-malware-scanner-design.md" target="_blank">Design Spec →</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="section">
+            <h2>Quick Links</h2>
+            <div class="doc-links">
+                <a href="../../docs/product/vision.md" class="doc-link">Product Vision</a>
+                <a href="../../docs/architecture/analysis-pipeline.md" class="doc-link">Analysis Pipeline</a>
+                <a href="../../docs/operations/deployment.md" class="doc-link">Deployment Guide</a>
+                <a href="../../docs/decisions/ADR-0001-platform-architecture.md" class="doc-link">Architecture Decisions</a>
+                <a href="../../docs/runbooks/retention-cleanup.md" class="doc-link">Runbooks</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>PDFy - PDF Malware Analysis API | <a href="../../docs/README.md">Documentation</a></p>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('pdfFile');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingDiv = document.getElementById('loading');
+        const resultDiv = document.getElementById('result');
+
+        fileInput.addEventListener('change', () => {
+            analyzeBtn.disabled = !fileInput.files[0];
+            resultDiv.style.display = 'none';
+        });
+
+        analyzeBtn.addEventListener('click', async () => {
+            if (!fileInput.files[0]) return;
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            loadingDiv.style.display = 'block';
+            analyzeBtn.disabled = true;
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('http://localhost:8000/analyze/fast', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                displayResult(data);
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>Error</h3><p>${error.message}</p>`;
+                resultDiv.className = 'result danger';
+                resultDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function displayResult(data) {
+            let verdictClass = 'success';
+            if (data.summary?.verdict === 'suspicious') verdictClass = 'warning';
+            if (data.summary?.verdict === 'malicious') verdictClass = 'danger';
+
+            const keywords = data.keyword_hits?.length > 0 ? data.keyword_hits.join(', ') : 'None';
+            const urls = data.iocs?.urls?.length > 0 ? data.iocs.urls.join(', ') : 'None';
+            const ips = data.iocs?.ips?.length > 0 ? data.iocs.ips.join(', ') : 'None';
+
+            resultDiv.innerHTML = `
+                <h3>Analysis Results</h3>
+                <div class="result-row"><span class="result-label">File:</span><span class="result-value">${data.file_name}</span></div>
+                <div class="result-row"><span class="result-label">SHA256:</span><span class="result-value" style="font-size:0.8em">${data.sha256}</span></div>
+                <div class="result-row"><span class="result-label">Keyword Hits:</span><span class="result-value">${keywords}</span></div>
+                <div class="result-row"><span class="result-label">URLs Found:</span><span class="result-value">${urls}</span></div>
+                <div class="result-row"><span class="result-label">IPs Found:</span><span class="result-value">${ips}</span></div>
+                <div class="result-row"><span class="result-label">Verdict:</span><span class="result-value" style="text-transform:uppercase">${data.summary?.verdict || 'unknown'}</span></div>
+                <div class="result-row"><span class="result-label">Score:</span><span class="result-value">${data.summary?.score || 0}/100</span></div>
+                <div class="result-row"><span class="result-label">Confidence:</span><span class="result-value">${data.summary?.confidence || 'unknown'}</span></div>
+            `;
+            resultDiv.className = `result ${verdictClass}`;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

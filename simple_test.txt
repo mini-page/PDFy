@@ -1,0 +1,1 @@
+﻿import sys; sys.path.insert(0, r"C:\Users\umang\Documents\GitHub\PDFy\services\analyzer"); from app.services.fast_scan import run_fast_scan; print("Import successful")
