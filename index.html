@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDFy - PDF Malware Analysis</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; color: #eee; }
+        .header { background: rgba(0,0,0,0.3); padding: 25px 20px; text-align: center; border-bottom: 2px solid #0f3460; }
+        .header h1 { margin: 0; font-size: 2.5em; color: #00d9ff; text-shadow: 0 0 20px rgba(0,217,255,0.5); }
+        .header p { margin: 10px 0 0; color: #aaa; font-size: 1.1em; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 25px 20px; }
+        
+        /* Tabs */
+        .tabs { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 20px; }
+        .tab-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #aaa; padding: 10px 20px; border-radius: 8px 8px 0 0; cursor: pointer; transition: all 0.2s; font-size: 0.95em; }
+        .tab-btn:hover { background: rgba(0,217,255,0.1); color: #00d9ff; }
+        .tab-btn.active { background: rgba(0,217,255,0.2); color: #00d9ff; border-color: #00d9ff; border-bottom-color: #1a1a2e; }
+        
+        .tab-content { display: none; background: rgba(255,255,255,0.03); border-radius: 0 15px 15px 15px; padding: 25px; border: 1px solid rgba(255,255,255,0.1); border-top: none; }
+        .tab-content.active { display: block; }
+
+        /* Sections */
+        .section-title { color: #00d9ff; font-size: 1.4em; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        
+        /* Upload Area */
+        .upload-area { border: 2px dashed #0f3460; border-radius: 10px; padding: 40px; text-align: center; background: rgba(0,0,0,0.2); transition: all 0.3s; }
+        .upload-area:hover { border-color: #00d9ff; background: rgba(0,217,255,0.05); }
+        .upload-area input[type="file"] { display: none; }
+        .upload-label { cursor: pointer; display: block; }
+        .upload-label .icon { font-size: 3em; margin-bottom: 10px; }
+        
+        .btn { background: linear-gradient(135deg, #0f3460, #00d9ff); color: #fff; border: none; padding: 12px 30px; border-radius: 25px; font-size: 1em; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 15px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,217,255,0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .loading { display: none; padding: 20px; text-align: center; }
+        .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #00d9ff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .result { margin-top: 20px; padding: 20px; border-radius: 10px; display: none; }
+        .result.success { background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; }
+        .result.warning { background: rgba(255, 193, 7, 0.2); border: 1px solid #ffc107; }
+        .result.danger { background: rgba(220, 53, 69, 0.2); border: 1px solid #dc3545; }
+        .result h3 { margin-top: 0; color: #fff; }
+        .result-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .result-row:last-child { border-bottom: none; }
+        .result-label { color: #aaa; }
+        .result-value { color: #fff; font-weight: 500; word-break: break-all; }
+
+        /* Features Grid */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0; }
+        .feature-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+        .feature-box h4 { color: #00d9ff; margin: 0 0 8px; font-size: 1em; }
+        .feature-box p { color: #aaa; margin: 0; font-size: 0.85em; line-height: 1.4; }
+
+        /* Code blocks */
+        pre { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 0.85em; line-height: 1.5; }
+        code { color: #00d9ff; }
+        .cmd { color: #7ee787; }
+
+        /* API Table */
+        .api-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .api-table th, .api-table td { text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .api-table th { color: #00d9ff; font-weight: 600; }
+        .api-table td { color: #ccc; font-size: 0.9em; }
+        .method { background: rgba(0,217,255,0.2); color: #00d9ff; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: 600; }
+        .method.post { background: rgba(40, 167, 69, 0.2); color: #7ee787; }
+        .method.get { background: rgba(0, 123, 255, 0.2); color: #6eb5ff; }
+
+        /* Deep Scan Results */
+        .deep-result { margin-top: 15px; }
+        .deep-section { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+        .deep-section h4 { color: #00d9ff; margin: 0 0 8px; font-size: 0.95em; }
+        .deep-section p, .deep-section ul { color: #aaa; margin: 0; font-size: 0.85em; }
+        .deep-section ul { padding-left: 20px; }
+
+        /* Footer */
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 0.9em; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PDFy</h1>
+        <p>PDF Malware Analysis API - Fast, comprehensive security scanning</p>
+    </div>
+
+    <div class="container">
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('analyze')">Analyze</button>
+            <button class="tab-btn" onclick="showTab('features')">Features</button>
+            <button class="tab-btn" onclick="showTab('api')">API</button>
+            <button class="tab-btn" onclick="showTab('installation')">Installation</button>
+            <button class="tab-btn" onclick="showTab('architecture')">Architecture</button>
+        </div>
+
+        <!-- Analyze Tab -->
+        <div id="analyze" class="tab-content active">
+            <h3 class="section-title">Analyze a PDF</h3>
+            <div class="upload-area">
+                <label class="upload-label">
+                    <div class="icon">📄</div>
+                    <div>Click to select or drag & drop a PDF file</div>
+                    <input type="file" id="pdfFile" accept=".pdf">
+                </label>
+            </div>
+            <div style="margin-top: 15px;">
+                <label style="color: #aaa; font-size: 0.9em;">
+                    <input type="checkbox" id="deepScan" style="margin-right: 8px;"> Enable Deep Scan (metadata, embedded files, JavaScript)
+                </label>
+            </div>
+            <button class="btn" id="analyzeBtn" disabled>Analyze PDF</button>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing your PDF...</p>
+            </div>
+            <div id="result" class="result"></div>
+        </div>
+
+        <!-- Features Tab -->
+        <div id="features" class="tab-content">
+            <h3 class="section-title">Key Features</h3>
+            <div class="features-grid">
+                <div class="feature-box">
+                    <h4>⚡ Fast Scanning</h4>
+                    <p>Quick heuristic analysis using keyword matching and regex patterns for rapid threat detection.</p>
+                </div>
+                <div class="feature-box">
+                    <h4>🔍 Deep Analysis</h4>
+                    <p>Uses pikepdf for comprehensive PDF parsing - extracts metadata, embedded files, and JavaScript actions.</p>
+                </div>
+                <div class="feature-box">
+                    <h4>🎯 IOC Extraction</h4>
+                    <p>Automatically extracts URLs, IP addresses, and suspicious keywords from PDF content.</p>
+                </div>
+                <div class="feature-box">
+                    <h4>📊 Risk Scoring</h4>
+                    <p>Calculates threat score (0-100) with verdict: clean, suspicious, or malicious.</p>
+                </div>
+                <div class="feature-box">
+                    <h4>🔐 Security Focus</h4>
+                    <p>Detects JavaScript actions, OpenAction, EmbeddedFiles, and other malicious PDF features.</p>
+                </div>
+                <div class="feature-box">
+                    <h4>🌐 Multi-Interface</h4>
+                    <p>REST API, Web UI, and TUI support for flexible integration.</p>
+                </div>
+            </div>
+
+            <h3 class="section-title" style="margin-top: 30px;">Detection Capabilities</h3>
+            <table class="api-table">
+                <tr><th>Category</th><th>Detected Items</th></tr>
+                <tr><td>Keywords</td><td>/JavaScript, /JS, /OpenAction, /EmbeddedFile</td></tr>
+                <tr><td>URLs</td><td>HTTP/HTTPS links in PDF content</td></tr>
+                <tr><td>IP Addresses</td><td>IPv4 addresses embedded in PDFs</td></tr>
+                <tr><td>Actions</td><td>JavaScript, OpenAction, Automatic Actions (AA)</td></tr>
+                <tr><td>Metadata</td><td>Author, Creator, Producer, CreationDate (deep scan)</td></tr>
+                <tr><td>Embedded Files</td><td>Embedded file objects (deep scan)</td></tr>
+            </table>
+        </div>
+
+        <!-- API Tab -->
+        <div id="api" class="tab-content">
+            <h3 class="section-title">API Endpoints</h3>
+            <table class="api-table">
+                <tr><th>Endpoint</th><th>Method</th><th>Description</th></tr>
+                <tr><td>/analyze/fast</td><td><span class="method post">POST</span></td><td>Quick scan with keywords & IOCs</td></tr>
+                <tr><td>/analyze/deep</td><td><span class="method post">POST</span></td><td>Deep scan with metadata & JS detection</td></tr>
+                <tr><td>/health</td><td><span class="method get">GET</span></td><td>Health check</td></tr>
+            </table>
+
+            <h3 class="section-title">Request Format</h3>
+            <pre>curl -X POST http://localhost:8000/analyze/fast \
+  -F "file=@sample.pdf"</pre>
+
+            <h3 class="section-title">Response Format</h3>
+            <pre>{
+  "file_name": "document.pdf",
+  "sha256": "abc123...",
+  "keyword_hits": ["/JavaScript", "/OpenAction"],
+  "iocs": {
+    "urls": ["http://example.com"],
+    "ips": ["192.168.1.1"]
+  },
+  "summary": {
+    "verdict": "suspicious",
+    "score": 65,
+    "confidence": "medium"
+  },
+  "metadata": {...},      // deep scan only
+  "embedded_files": [...], // deep scan only
+  "javascript": [...]     // deep scan only
+}</pre>
+
+            <h3 class="section-title">Verdict System</h3>
+            <table class="api-table">
+                <tr><th>Score Range</th><th>Verdict</th><th>Action</th></tr>
+                <tr><td>0-39</td><td style="color:#7ee787">clean</td><td>File appears safe</td></tr>
+                <tr><td>40-79</td><td style="color:#ffc107">suspicious</td><td>Review recommended</td></tr>
+                <tr><td>80-100</td><td style="color:#dc3545">malicious</td><td>Threat detected</td></tr>
+            </table>
+        </div>
+
+        <!-- Installation Tab -->
+        <div id="installation" class="tab-content">
+            <h3 class="section-title">Quick Start</h3>
+            <pre><span class="cmd"># Install dependencies</span>
+pip install -e ./services/analyzer
+
+<span class="cmd"># Start the API server</span>
+cd services/analyzer
+uvicorn app.main:app --host 0.0.0.0 --port 8000</pre>
+
+            <h3 class="section-title">Requirements</h3>
+            <ul style="color: #aaa; line-height: 1.8;">
+                <li>Python 3.12+</li>
+                <li>FastAPI 0.115.0+</li>
+                <li>pikepdf 4.0.0+ (for deep scanning)</li>
+                <li>pytest (for testing)</li>
+            </ul>
+
+            <h3 class="section-title">Running Tests</h3>
+            <pre><span class="cmd"># Run all tests</span>
+pytest
+
+<span class="cmd"># Run with coverage</span>
+pytest --cov</pre>
+
+            <h3 class="section-title">Docker Deployment</h3>
+            <pre><span class="cmd"># Using docker-compose</span>
+docker-compose up -d</pre>
+        </div>
+
+        <!-- Architecture Tab -->
+        <div id="architecture" class="tab-content">
+            <h3 class="section-title">System Architecture</h3>
+            <div class="features-grid">
+                <div class="feature-box">
+                    <h4>📁 services/analyzer</h4>
+                    <p>Core PDF analysis engine with fast & deep scanning capabilities.</p>
+                </div>
+                <div class="feature-box">
+                    <h4>🌐 apps/web</h4>
+                    <p>Browser-based web interface for PDF uploads and results display.</p>
+                </div>
+                <div class="feature-box">
+                    <h4>⌨️ services/analyzer/tui.py</h4>
+                    <p>Terminal UI for command-line PDF analysis.</p>
+                </div>
+            </div>
+
+            <h3 class="section-title">Analysis Pipeline</h3>
+            <ol style="color: #aaa; line-height: 1.8; padding-left: 20px;">
+                <li><strong style="color:#00d9ff">File Reception</strong> - Upload PDF via API or UI</li>
+                <li><strong style="color:#00d9ff">Hash Computation</strong> - Calculate SHA256 for identification</li>
+                <li><strong style="color:#00d9ff">Fast Scan</strong> - Keyword matching, IOC regex extraction</li>
+                <li><strong style="color:#00d9ff">Deep Scan</strong> (optional) - pikepdf parsing for metadata/JS</li>
+                <li><strong style="color:#00d9ff">Risk Scoring</strong> - Calculate verdict based on findings</li>
+                <li><strong style="color:#00d9ff">Response</strong> - Return JSON result to client</li>
+            </ol>
+
+            <h3 class="section-title">Security & Privacy</h3>
+            <div class="feature-box">
+                <p>• No persistent storage of uploaded files</p>
+                <p>• Files processed in memory, discarded after analysis</p>
+                <p>• SHA256 hash used for identification without full file retention</p>
+                <p>• Designed for safe, transient analysis workflow</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>PDFy - PDF Malware Analysis API | v0.1.0</p>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        const fileInput = document.getElementById('pdfFile');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const deepScanCheckbox = document.getElementById('deepScan');
+        const loadingDiv = document.getElementById('loading');
+        const resultDiv = document.getElementById('result');
+
+        fileInput.addEventListener('change', () => {
+            analyzeBtn.disabled = !fileInput.files[0];
+            resultDiv.style.display = 'none';
+        });
+
+        analyzeBtn.addEventListener('click', async () => {
+            if (!fileInput.files[0]) return;
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const endpoint = deepScanCheckbox.checked ? '/analyze/deep' : '/analyze/fast';
+
+            loadingDiv.style.display = 'block';
+            analyzeBtn.disabled = true;
+            resultDiv.style.display = 'none';
+
+            try {
+                const response = await fetch(`http://localhost:8000${endpoint}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                displayResult(data, deepScanCheckbox.checked);
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>Error</h3><p>${error.message}</p>`;
+                resultDiv.className = 'result danger';
+                resultDiv.style.display = 'block';
+            } finally {
+                loadingDiv.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        function displayResult(data, isDeep) {
+            let verdictClass = 'success';
+            if (data.summary?.verdict === 'suspicious') verdictClass = 'warning';
+            if (data.summary?.verdict === 'malicious') verdictClass = 'danger';
+
+            const keywords = data.keyword_hits?.length > 0 ? data.keyword_hits.join(', ') : 'None';
+            const urls = data.iocs?.urls?.length > 0 ? data.iocs.urls.join(', ') : 'None';
+            const ips = data.iocs?.ips?.length > 0 ? data.iocs.ips.join(', ') : 'None';
+
+            let html = `
+                <h3>Analysis Results</h3>
+                <div class="result-row"><span class="result-label">File:</span><span class="result-value">${data.file_name}</span></div>
+                <div class="result-row"><span class="result-label">SHA256:</span><span class="result-value" style="font-size:0.8em">${data.sha256}</span></div>
+                <div class="result-row"><span class="result-label">Keyword Hits:</span><span class="result-value">${keywords}</span></div>
+                <div class="result-row"><span class="result-label">URLs Found:</span><span class="result-value">${urls}</span></div>
+                <div class="result-row"><span class="result-label">IPs Found:</span><span class="result-value">${ips}</span></div>
+                <div class="result-row"><span class="result-label">Verdict:</span><span class="result-value" style="text-transform:uppercase">${data.summary?.verdict || 'unknown'}</span></div>
+                <div class="result-row"><span class="result-label">Score:</span><span class="result-value">${data.summary?.score || 0}/100</span></div>
+                <div class="result-row"><span class="result-label">Confidence:</span><span class="result-value">${data.summary?.confidence || 'unknown'}</span></div>
+            `;
+
+            if (isDeep && (data.metadata || data.embedded_files || data.javascript)) {
+                html += '<div class="deep-result">';
+                if (data.metadata) {
+                    html += `<div class="deep-section"><h4>Metadata</h4><p>${Object.entries(data.metadata).map(([k,v]) => `${k}: ${v}`).join(', ') || 'None'}</p></div>`;
+                }
+                if (data.embedded_files?.length > 0) {
+                    html += `<div class="deep-section"><h4>Embedded Files</h4><ul>${data.embedded_files.map(f => `<li>${f.filename || f.subtype || 'Unknown'}</li>`).join('')}</ul></div>`;
+                }
+                if (data.javascript?.length > 0) {
+                    html += `<div class="deep-section"><h4>JavaScript Actions</h4><ul>${data.javascript.map(j => `<li>${j}</li>`).join('')}</ul></div>`;
+                }
+                html += '</div>';
+            }
+
+            resultDiv.innerHTML = html;
+            resultDiv.className = `result ${verdictClass}`;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
